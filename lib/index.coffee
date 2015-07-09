@@ -51,9 +51,10 @@ class DigestManifest
     return obj
 
   renameFile: (spec) =>
+    key = Object.keys(spec)[0]
     fs.renameSync(
-      path.resolve(@publicFolder, Object.keys(spec)[0]),
-      path.resolve(@publicFolder, spec[Object.keys(spec)[0]])
+      path.resolve(@publicFolder, key),
+      path.resolve(@publicFolder, spec[key])
     )
     return spec
 
