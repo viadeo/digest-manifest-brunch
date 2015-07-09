@@ -22,17 +22,7 @@ class DigestManifest
       # '/relative/path/to/file.ext' => is a file ? '/relative/path/to/file.ext'
       R.filter(@isValidFile)
 
-      # '/relative/path/to/file.ext' => {
-      #   url: '/relative/path/to/file.ext',
-      #   sha1: 'sha1xq0ds'
-      # }
-      R.map(@sha1Map)
-
-      # {
-      #   url: '/relative/path/to/file.ext',
-      #   sha1: 'sha1xq0ds'
-      # }
-      # => {'/relative/path/to/file.ext' : '/relative/path/to/file.sha1xq0ds.ext'}
+      # '/relative/path/to/file.ext' => {'/relative/path/to/file.ext' : '/relative/path/to/file.sha1xq0ds.ext'}
       R.map(@hashedFilePath)
 
       # store reference
@@ -49,33 +39,24 @@ class DigestManifest
 
   isValidFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt @manifestPath
 
-  sha1Map: (url) =>
-    data = fs.readFileSync path.resolve(@publicFolder, url)
-    return {
-      url: url
-      sha1: crypto
-        .createHash('sha1')
-        .update(data)
-        .digest('hex')[0..@sha1Level]
-    }
+  hashedFilePath: (url) =>
 
-  hashedFilePath: (spec) =>
     obj = {}
-    addSha1 = (match) -> ".#{spec.sha1}#{match}"
-    obj[spec.url] = spec.url.replace(/[.]\w*$/g, addSha1)
-    obj
 
+    data = fs.readFileSync path.resolve(@publicFolder, url)
+
+    sha1 = crypto
+      .createHash('sha1')
+      .update(data)
+      .digest('hex')[0..@sha1Level]
+
+    addSha1 = (match) -> ".#{sha1}#{match}"
+
+    obj[url] = url.replace(/[.]\w*$/g, addSha1)
+    obj
 
   storeInManifest: (spec) =>
     @manifest[Object.keys(spec)[0]] = spec[Object.keys(spec)[0]]
-    spec
-
-  writeManifest: (spec) =>
-    fs.writeFileSync(
-      path.resolve(@publicFolder, @manifestPath),
-      JSON.stringify(spec),
-      'utf8'
-    )
     spec
 
   renameFile: (spec) =>
@@ -85,5 +66,11 @@ class DigestManifest
     )
     spec
 
+  writeManifest: (spec) =>
+    fs.writeFileSync(
+      path.resolve(@publicFolder, @manifestPath),
+      JSON.stringify(spec),
+      'utf8'
+    )
 
 module.exports = DigestManifest
