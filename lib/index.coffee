@@ -9,11 +9,45 @@ class DigestManifest
   brunchPlugin: true
 
   constructor: (@config) ->
-    @publicFolder = @config.paths.public
-    @manifest = []
-    @options = {}
+    @publicFolder   = @config.paths.public
+    @sha1Level      = 6
+    @manifestPath   = 'manifest.json'
+    @manifest       = {}
+    @options        = {}
 
-  isFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt 'manifest.json'
+  onCompile: ->
+
+    compute = R.pipe(
+
+      # '/relative/path/to/file.ext' => is a file ? '/relative/path/to/file.ext'
+      R.filter(@isFile)
+
+      # '/relative/path/to/file.ext' => {
+      #   url: '/relative/path/to/file.ext',
+      #   sha1: 'sha1xq0ds'
+      # }
+      R.map(@sha1Map)
+
+      # {
+      #   url: '/relative/path/to/file.ext',
+      #   sha1: 'sha1xq0ds'
+      # }
+      # => {'/relative/path/to/file.ext' : '/relative/path/to/file.sha1xq0ds.ext'}
+      R.map(@hashedFilePath)
+
+      # store reference
+      R.map(@storeInManifest)
+
+      # Rename filename with hash
+      R.map(@renameFile)
+
+    )
+
+    compute(glob.sync('**', { cwd: @publicFolder }))
+    @writeManifest(@manifest)
+
+
+  isFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt @manifestPath
 
   sha1Map: (url) =>
     data = fs.readFileSync path.resolve(@publicFolder, url)
@@ -21,21 +55,22 @@ class DigestManifest
     shasum.update(data)
     return {
       url: url
-      sha1: shasum.digest('hex')[0..8]
+      sha1: shasum.digest('hex')[0..@sha1Level]
     }
 
-  hashedFilePath: (spec) => {
-    hashedUrl : spec.url.replace('.', ".#{spec.sha1}.")
-    url: spec.url
-  }
+  hashedFilePath: (spec) =>
+    obj = {}
+    obj[spec.url] = spec.url.replace('.', ".#{spec.sha1}.")
+    obj
+
 
   storeInManifest: (spec) =>
-    @manifest.push(spec)
+    @manifest[Object.keys(spec)[0]] = spec[Object.keys(spec)[0]]
     spec
 
   writeManifest: (spec) =>
     fs.writeFileSync(
-      path.resolve(@publicFolder, 'manifest.json'),
+      path.resolve(@publicFolder, @manifestPath),
       JSON.stringify(spec),
       'utf8'
     )
@@ -43,45 +78,10 @@ class DigestManifest
 
   renameFile: (spec) =>
     fs.renameSync(
-      path.resolve(@publicFolder, spec.url),
-      path.resolve(@publicFolder, spec.hashedUrl)
+      path.resolve(@publicFolder, Object.keys(spec)[0]),
+      path.resolve(@publicFolder, spec[Object.keys(spec)[0]])
     )
-    spec.hashedUrl
-
-  onCompile: ->
-
-    filesToHash = =>
-
-      compute = R.compose(
-
-        R.map(@renameFile)
-
-        R.map(@storeInManifest)
-
-        # {
-        #   url: '/relative/path/to/file.ext',
-        #   sha1: 'sha1xq0ds'
-        # } => {
-        #   url: '/relative/path/to/file.ext',
-        #   hashedUrl: '/relative/path/to/file.sha1xq0ds.ext'
-        # }
-        R.map(@hashedFilePath)
-
-        # '/relative/path/to/file.ext' => {
-        #   url: '/relative/path/to/file.ext',
-        #   sha1: 'sha1xq0ds'
-        # }
-        R.map(@sha1Map)
-
-        # => '/relative/path/to/file.ext'
-        R.filter(@isFile)
-      )
-
-      compute(glob.sync('**', { cwd: @publicFolder }))
-
-
-    files = filesToHash()
-    @writeManifest(@manifest)
+    spec
 
 
 module.exports = DigestManifest
