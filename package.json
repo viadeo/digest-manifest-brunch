@@ -1,0 +1,12 @@
+{
+  "name": "digest-manifest-brunch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.coffee",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "glob": "^5.0.13",
+    "ramda": "^0.15.1"
+  }
+}
