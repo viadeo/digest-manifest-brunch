@@ -37,11 +37,13 @@ class DigestManifest
     @writeManifest(compute(glob.sync('**', { cwd: @publicFolder })))
 
 
-  isValidFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt @manifestPath
+  normalizeUrl: (url) => path.resolve(@publicFolder, url)
+
+  isValidFile: (url) => fs.statSync(@normalizeUrl(url)).isFile() and url isnt @manifestPath
 
   hashedFilePath: (url) =>
     obj = {}
-    data = fs.readFileSync path.resolve(@publicFolder, url)
+    data = fs.readFileSync @normalizeUrl(url)
     sha1 = crypto
       .createHash('sha1')
       .update(data)
@@ -52,15 +54,15 @@ class DigestManifest
 
   renameFile: (spec) =>
     key = Object.keys(spec)[0]
-    fs.renameSync(
-      path.resolve(@publicFolder, key),
-      path.resolve(@publicFolder, spec[key])
+    fs.rename(
+      @normalizeUrl(key),
+      @normalizeUrl(spec[key])
     )
     return spec
 
   writeManifest: (spec) =>
     fs.writeFileSync(
-      path.resolve(@publicFolder, @manifestPath),
+      @normalizeUrl(@manifestPath),
       JSON.stringify(spec),
       'utf8'
     )
