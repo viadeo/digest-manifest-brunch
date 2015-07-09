@@ -20,7 +20,7 @@ class DigestManifest
     compute = R.pipe(
 
       # '/relative/path/to/file.ext' => is a file ? '/relative/path/to/file.ext'
-      R.filter(@isFile)
+      R.filter(@isValidFile)
 
       # '/relative/path/to/file.ext' => {
       #   url: '/relative/path/to/file.ext',
@@ -47,7 +47,7 @@ class DigestManifest
     @writeManifest(@manifest)
 
 
-  isFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt @manifestPath
+  isValidFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt @manifestPath
 
   sha1Map: (url) =>
     data = fs.readFileSync path.resolve(@publicFolder, url)
