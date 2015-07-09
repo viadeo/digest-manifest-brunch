@@ -60,7 +60,8 @@ class DigestManifest
 
   hashedFilePath: (spec) =>
     obj = {}
-    obj[spec.url] = spec.url.replace('.', ".#{spec.sha1}.")
+    addSha1 = (match) -> ".#{spec.sha1}#{match}"
+    obj[spec.url] = spec.url.replace(/[.]\w*$/g, addSha1)
     obj
 
 
