@@ -10,9 +10,10 @@ class DigestManifest
 
   constructor: (@config) ->
     @publicFolder = @config.paths.public
+    @manifest = []
     @options = {}
 
-  isFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile()
+  isFile: (url) => fs.statSync(path.resolve(@publicFolder, url)).isFile() and url isnt 'manifest.json'
 
   sha1Map: (url) =>
     data = fs.readFileSync path.resolve(@publicFolder, url)
@@ -28,6 +29,18 @@ class DigestManifest
     url: spec.url
   }
 
+  storeInManifest: (spec) =>
+    @manifest.push(spec)
+    spec
+
+  writeManifest: (spec) =>
+    fs.writeFileSync(
+      path.resolve(@publicFolder, 'manifest.json'),
+      JSON.stringify(spec),
+      'utf8'
+    )
+    spec
+
   renameFile: (spec) =>
     fs.renameSync(
       path.resolve(@publicFolder, spec.url),
@@ -42,6 +55,8 @@ class DigestManifest
       compute = R.compose(
 
         R.map(@renameFile)
+
+        R.map(@storeInManifest)
 
         # {
         #   url: '/relative/path/to/file.ext',
@@ -64,7 +79,9 @@ class DigestManifest
 
       compute(glob.sync('**', { cwd: @publicFolder }))
 
-    console.log filesToHash()
+
+    files = filesToHash()
+    @writeManifest(@manifest)
 
 
 module.exports = DigestManifest
