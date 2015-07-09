@@ -51,11 +51,12 @@ class DigestManifest
 
   sha1Map: (url) =>
     data = fs.readFileSync path.resolve(@publicFolder, url)
-    shasum = crypto.createHash 'sha1'
-    shasum.update(data)
     return {
       url: url
-      sha1: shasum.digest('hex')[0..@sha1Level]
+      sha1: crypto
+        .createHash('sha1')
+        .update(data)
+        .digest('hex')[0..@sha1Level]
     }
 
   hashedFilePath: (spec) =>
