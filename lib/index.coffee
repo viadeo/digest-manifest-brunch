@@ -44,27 +44,16 @@ class DigestManifest
   hashedFilePath: (url) =>
     obj = {}
     data = fs.readFileSync @normalizeUrl(url)
-    sha1 = crypto
-      .createHash('sha1')
-      .update(data)
-      .digest('hex')[0..@sha1Level]
+    sha1 = crypto.createHash('sha1').update(data).digest('hex')[0..@sha1Level]
     addSha1 = (match) -> ".#{sha1}#{match}"
     obj[url] = url.replace(/[.]\w*$/g, addSha1)
     return obj
 
   renameFile: (spec) =>
     key = Object.keys(spec)[0]
-    fs.rename(
-      @normalizeUrl(key),
-      @normalizeUrl(spec[key])
-    )
+    fs.rename(@normalizeUrl(key), @normalizeUrl(spec[key]))
     return spec
 
-  writeManifest: (spec) =>
-    fs.writeFileSync(
-      @normalizeUrl(@manifestPath),
-      JSON.stringify(spec),
-      'utf8'
-    )
+  writeManifest: (spec) => fs.writeFileSync(@normalizeUrl(@manifestPath), JSON.stringify(spec), 'utf8')
 
 module.exports = DigestManifest
