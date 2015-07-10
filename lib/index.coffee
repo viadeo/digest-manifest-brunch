@@ -18,7 +18,7 @@ class DigestManifest
     compute = R.pipe(
       R.filter  @isValidFile                  # 's' -> true|false
       R.map     @hashedFilePath               # 's' -> {'s' : 'h'}
-      R.forEach @renameFile                   # {a} -> {a}
+      R.forEach @createHashedFile             # {a} -> {a}
       R.mergeAll                              # merge all references into a single object
     )
     @writeManifest compute( glob.sync('**', cwd: @publicFolder ) )
@@ -59,17 +59,16 @@ class DigestManifest
     obj
 
   ###
-  # Renames a file into its hashed counterpart
+  # Creates a hashed version of a file given file
   #
   # @param {Object} file spec
   # @return {Object} same file spec
   ###
-  renameFile: (spec) =>
+  createHashedFile: (spec) =>
     key = Object.keys(spec)[0]
-    fs.rename(
-      @normalizeUrl key
-      @normalizeUrl spec[key]
-    )
+    fs
+      .createReadStream(@normalizeUrl key)
+      .pipe fs.createWriteStream(@normalizeUrl spec[key])
 
   ###
   # Writes with json format the hash map description object
