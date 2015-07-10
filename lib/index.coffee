@@ -9,9 +9,10 @@ class DigestManifest
   brunchPlugin: true
 
   constructor: (@config) ->
-    @publicFolder   = @config.paths.public
-    @sha1Level      = 6
-    @manifestPath   = 'manifest.json'
+    @defaultEnv     = 'production'            # hash task is only activated for a production build
+    @publicFolder   = @config.paths.public    # manifest will be placed in the `public` folder
+    @sha1Level      = 6                       # sha1 precision level, 6 seems fair
+    @manifestPath   = 'manifest.json'         # hashed resources manifest will be placed at the root of `public` folder
 
   onCompile: ->
 
