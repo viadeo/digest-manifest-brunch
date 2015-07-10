@@ -46,8 +46,7 @@ class DigestManifest
     obj = {}
     data = fs.readFileSync @normalizeUrl(url)
     sha1 = crypto.createHash('sha1').update(data).digest('hex')[0..@sha1Level]
-    addSha1 = (match) -> ".#{sha1}#{match}"
-    obj[url] = url.replace(/[.]\w*$/g, addSha1)
+    obj[url] = url.replace(/[.]\w*$/g, (match) -> ".#{sha1}#{match}")
     return obj
 
   renameFile: (spec) =>
