@@ -15,13 +15,17 @@ class DigestManifest
     @manifestPath   = 'manifest.json'         # hashed resources manifest will be placed at the root of `public` folder
 
   onCompile: ->
-    compute = R.pipe(
+
+    publicTree = glob.sync('**', cwd: @publicFolder )
+
+    computeMutableStaticFiles = R.pipe(
       R.filter  @isValidFile                  # 's' -> true|false
+      R.filter  @isMutableStaticFile          # filter on .js and .css files only
       R.map     @hashedFilePath               # 's' -> {'s' : 'h'}
       R.forEach @createHashedFile             # {a} -> {a}
       R.mergeAll                              # merge all references into a single object
     )
-    @writeManifest compute( glob.sync('**', cwd: @publicFolder ) )
+    @writeManifest computeMutableStaticFiles(publicTree)
 
   ###
   # Returns an url relative to public folder
@@ -41,6 +45,18 @@ class DigestManifest
   # '/relative/path/to/file.ext' -> (is a file) ? '/relative/path/to/file.ext'
   ###
   isValidFile: (url) => fs.statSync( @normalizeUrl url ).isFile() and url isnt @manifestPath
+
+  ###
+  # Returns `true` if given extension is js or css
+  #
+  # @param {String} url
+  # @return {Boolean} valid file
+  #
+  # '/relative/path/to/file.ext' -> (is a js or css file) ? '/relative/path/to/file.ext'
+  ###
+  isMutableStaticFile: (url) =>
+    ext = path.extname(url)
+    ext is '.js' or ext is '.css'
 
   ###
   # Returns an object describing the link between a resource path
