@@ -6,13 +6,16 @@ crypto        = require 'crypto'
 
 class DigestManifest
 
+
   brunchPlugin: true
+
 
   constructor: (@config) ->
     @defaultEnv     = 'production'            # hash task is only activated for a production build
     @publicFolder   = @config.paths.public    # manifest will be placed in the `public` folder
     @sha1Level      = 6                       # sha1 precision level, 6 seems fair
     @manifestPath   = 'manifest.json'         # hashed resources manifest will be placed at the root of `public` folder
+
 
   onCompile: ->
 
@@ -45,6 +48,7 @@ class DigestManifest
     # output all hashed resources map
     @writeManifest R.mergeAll([staticR, scriptR])
 
+
   ###
   # Returns an url relative to public folder
   #
@@ -52,6 +56,7 @@ class DigestManifest
   # @return {String} normalized url
   ###
   normalizeUrl: (url) => path.resolve(@publicFolder, url)
+
 
   ###
   # Returns `true` if given url references a file
@@ -63,6 +68,7 @@ class DigestManifest
   # '/relative/path/to/file.ext' -> (is a file) ? '/relative/path/to/file.ext'
   ###
   isValidFile: (url) => fs.statSync( @normalizeUrl url ).isFile() and url isnt @manifestPath
+
 
   ###
   # Returns `true` if given extension is js or css
@@ -76,6 +82,7 @@ class DigestManifest
     ext = path.extname(url)
     ['.js', '.css'].indexOf(ext) > -1
 
+
   ###
   # Returns `true` if given extension is an image or a font
   #
@@ -87,6 +94,7 @@ class DigestManifest
   isStaticResource: (url) =>
     ext = path.extname(url)
     ['.png', '.jpg', '.jpeg', '.svg', '.eot', '.ttf', '.woff'].indexOf(ext) > -1
+
 
   ###
   # Returns an object describing the link between a resource path
@@ -104,6 +112,7 @@ class DigestManifest
     obj[url] = url.replace(/[.]\w*$/g, (match) -> ".#{sha1}#{match}")
     obj
 
+
   ###
   # Creates a hashed version of a file given file
   #
@@ -118,21 +127,30 @@ class DigestManifest
 
 
   ###
-  # 
+  # Returns an in-file replacement function
   #
-  #
+  # @param {Object} files hash map
+  # @return {Function} in-file replacement function
   ###
-  replaceRefs: (staticFilesMap) => (url) =>
+  replaceRefs: (staticFilesMap) =>
 
-    fileContent = fs.readFileSync(@normalizeUrl(url), 'utf8')
+    ###
+    # Performs replacements into provided url file
+    #
+    # @param {String} url of targeted file
+    # @return undefined
+    ###
+    (url) =>
 
-    R.mapObjIndexed(
-      (num, key, spec) ->
-        fileContent = fileContent.replace(key, spec[key])
-      staticFilesMap
-    )
+      fileContent = fs.readFileSync(@normalizeUrl(url), 'utf8')
 
-    fs.writeFileSync(@normalizeUrl(url), fileContent, 'utf8')
+      R.mapObjIndexed(
+        (num, key, spec) ->
+          fileContent = fileContent.replace(key, spec[key])
+        staticFilesMap
+      )
+
+      fs.writeFileSync(@normalizeUrl(url), fileContent, 'utf8')
 
 
   ###
@@ -148,5 +166,6 @@ class DigestManifest
       JSON.stringify references
       'utf8'
     )
+
 
 module.exports = DigestManifest
