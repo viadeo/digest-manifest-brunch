@@ -25,24 +25,25 @@ class DigestManifest
     # valid public folder filetree list
     g = R.filter(@isValidFile, glob.sync('**', cwd: @publicFolder ))
 
-    # immutable resources list transformation pipeline
-    i = R.pipe(
-      R.filter  @isImmutableStaticFile
+    # static resources list transformation pipeline
+    staticP = R.pipe(
+      R.filter  @isStaticResource
       hashAndMap
     )
 
-    # mutable resources list transformation pipeline
-    m = (immutablesList) =>
+    # script resources list transformation pipeline
+    scriptP = (staticsList) =>
       R.pipe(
-        R.filter  @isMutableStaticFile          # filter on .js and .css files only
-        R.forEach @replaceHashedImmutableRefs(immutablesList) # search and replace
+        R.filter  @isScriptResource           # filter on .js and .css files only
+        R.forEach @replaceRefs(staticsList)   # search and replace
         hashAndMap
       )
 
-    I = i(g)                                    # immutable resources list+hashing and map
-    M = m(I)(g)                                 # mutable resources list+hashing and map
+    staticR = staticP(g)                      # static resources list+hashing and map
+    scriptR = scriptP(staticR)(g)             # script resources list+hashing and map
 
-    @writeManifest R.mergeAll([I, M])           # output all hashed resources map
+    # output all hashed resources map
+    @writeManifest R.mergeAll([staticR, scriptR])
 
   ###
   # Returns an url relative to public folder
@@ -71,7 +72,7 @@ class DigestManifest
   #
   # '/relative/path/to/file.ext' -> (is a js or css file) ? '/relative/path/to/file.ext'
   ###
-  isMutableStaticFile: (url) =>
+  isScriptResource: (url) =>
     ext = path.extname(url)
     ['.js', '.css'].indexOf(ext) > -1
 
@@ -83,7 +84,7 @@ class DigestManifest
   #
   # '/relative/path/to/file.ext' -> (is image or font) ? '/relative/path/to/file.ext'
   ###
-  isImmutableStaticFile: (url) =>
+  isStaticResource: (url) =>
     ext = path.extname(url)
     ['.png', '.jpg', '.jpeg', '.svg', '.eot', '.ttf', '.woff'].indexOf(ext) > -1
 
@@ -117,19 +118,18 @@ class DigestManifest
 
 
   ###
-  #
-  #
+  # 
   #
   #
   ###
-  replaceHashedImmutableRefs: (immutableStaticFilesMap) => (url) =>
+  replaceRefs: (staticFilesMap) => (url) =>
 
     fileContent = fs.readFileSync(@normalizeUrl(url), 'utf8')
 
     R.mapObjIndexed(
       (num, key, spec) ->
         fileContent = fileContent.replace(key, spec[key])
-      immutableStaticFilesMap
+      staticFilesMap
     )
 
     fs.writeFileSync(@normalizeUrl(url), fileContent, 'utf8')
