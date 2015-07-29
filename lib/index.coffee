@@ -16,24 +16,27 @@ class DigestManifest
 
   onCompile: ->
 
-    g = glob.sync('**', cwd: @publicFolder )
-
-    i = R.pipe(
-      R.filter  @isValidFile
-      R.filter  @isImmutableStaticFile
-      R.map     @hashedFilePath
-      R.forEach @createHashedFile
-      R.mergeAll
+    hashAndMap = R.pipe(
+      R.map     @hashedFilePath               # 's' -> {'s' : 'h'}
+      R.forEach @createHashedFile             # {a} -> {a}
+      R.mergeAll                              # [{a}, {a}, ...] -> {A} # merge all references into a single object
     )
 
+    # valid public folder filetree list
+    g = R.filter(@isValidFile, glob.sync('**', cwd: @publicFolder ))
+
+    # immutable resources list transformation pipeline
+    i = R.pipe(
+      R.filter  @isImmutableStaticFile
+      hashAndMap
+    )
+
+    # mutable resources list transformation pipeline
     m = (immutablesList) =>
       R.pipe(
-        R.filter  @isValidFile                  # 's' -> true|false
         R.filter  @isMutableStaticFile          # filter on .js and .css files only
         R.forEach @replaceHashedImmutableRefs(immutablesList) # search and replace
-        R.map     @hashedFilePath               # 's' -> {'s' : 'h'}
-        R.forEach @createHashedFile             # {a} -> {a}
-        R.mergeAll                              # merge all references into a single object
+        hashAndMap
       )
 
     I = i(g)                                    # immutable resources list+hashing and map
