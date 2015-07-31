@@ -1,4 +1,5 @@
 # digest-manifest-brunch
+[![Circle CI](https://circleci.com/gh/viadeo/digest-manifest-brunch.svg?style=svg)](https://circleci.com/gh/viadeo/digest-manifest-brunch)
 
 ### Description
 
