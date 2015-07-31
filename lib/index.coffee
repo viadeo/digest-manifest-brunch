@@ -6,9 +6,7 @@ crypto        = require 'crypto'
 
 class DigestManifest
 
-
   brunchPlugin: true
-
 
   constructor: (@config) ->
     @defaultEnv     = 'production'            # hash task is only activated for a production build
@@ -16,17 +14,19 @@ class DigestManifest
     @sha1Level      = 6                       # sha1 precision level, 6 seems fair
     @manifestPath   = 'manifest.json'         # hashed resources manifest will be placed at the root of `public` folder
 
-
   onCompile: ->
 
+    # public folder filetree list
+    g = R.filter(@isValidFile, glob.sync('**', cwd: @publicFolder ))
+
+    # create hashed version of provided file list
+    # -> return a hash map
+    # hashAndMap :: [String] -> [Object] -> Object
     hashAndMap = R.pipe(
       R.map     @hashedFilePath               # 's' -> {'s' : 'h'}
       R.forEach @createHashedFile             # {a} -> {a}
       R.mergeAll                              # [{a}, {a}, ...] -> {A} # merge all references into a single object
     )
-
-    # valid public folder filetree list
-    g = R.filter(@isValidFile, glob.sync('**', cwd: @publicFolder ))
 
     # static resources list transformation pipeline
     staticP = R.pipe(
@@ -42,21 +42,31 @@ class DigestManifest
         hashAndMap
       )
 
-    staticR = staticP(g)                      # static resources list+hashing and map
-    scriptR = scriptP(staticR)(g)             # script resources list+hashing and map
+    # //////////////////////////////////////////////////////////////////////
 
-    # output all hashed resources map
-    @writeManifest R.mergeAll([staticR, scriptR])
+    # 1.  performs on static resources list:
+    #     - files hashing
+    # -> return a map
+    staticsHashMap = staticP(g)
 
+    # 2.  performs on script resources list:
+    #     - search/replace of hashed static resources (using staticsHashMap)
+    #     - file hashing
+    # -> return a map
+    scriptsHashMap = scriptP(staticsHashMap)(g)
+
+    # output all hashed resources map into manifest
+    @writeManifest R.mergeAll([staticsHashMap, scriptsHashMap])
 
   ###
+  # isValidFile :: String -> String
+  #
   # Returns an url relative to public folder
   #
   # @param {String} url
   # @return {String} normalized url
   ###
   normalizeUrl: (url) => path.resolve(@publicFolder, url)
-
 
   ###
   # Returns `true` if given url references a file
@@ -65,10 +75,11 @@ class DigestManifest
   # @param {String} url
   # @return {Boolean} valid file
   #
+  # isValidFile :: String -> Boolean
+  #
   # '/relative/path/to/file.ext' -> (is a file) ? '/relative/path/to/file.ext'
   ###
   isValidFile: (url) => fs.statSync( @normalizeUrl url ).isFile() and url isnt @manifestPath
-
 
   ###
   # Returns `true` if given extension is js or css
@@ -76,12 +87,13 @@ class DigestManifest
   # @param {String} url
   # @return {Boolean} valid file
   #
+  # isScriptResource :: String -> Boolean
+  #
   # '/relative/path/to/file.ext' -> (is a js or css file) ? '/relative/path/to/file.ext'
   ###
   isScriptResource: (url) =>
     ext = path.extname(url)
     ['.js', '.css'].indexOf(ext) > -1
-
 
   ###
   # Returns `true` if given extension is an image or a font
@@ -89,12 +101,13 @@ class DigestManifest
   # @param {String} url
   # @return {Boolean} valid file
   #
+  # isStaticResource :: String -> Boolean
+  #
   # '/relative/path/to/file.ext' -> (is image or font) ? '/relative/path/to/file.ext'
   ###
   isStaticResource: (url) =>
     ext = path.extname(url)
     ['.png', '.jpg', '.jpeg', '.svg', '.eot', '.ttf', '.woff'].indexOf(ext) > -1
-
 
   ###
   # Returns an object describing the link between a resource path
@@ -102,6 +115,8 @@ class DigestManifest
   #
   # @param {String} url
   # @return {Object}
+  #
+  # hashedFilePath :: String -> Object
   #
   # '/relative/path/to/file.ext' -> {'/relative/path/to/file.ext' : '/relative/path/to/file.sha1xq0ds.ext'}
   ###
@@ -112,9 +127,10 @@ class DigestManifest
     obj[url] = url.replace(/[.]\w*$/g, (match) -> ".#{sha1}#{match}")
     obj
 
-
   ###
   # Creates a hashed version of a file given file
+  #
+  # createHashedFile :: Object -> Object
   #
   # @param {Object} file spec
   # @return {Object} same file spec
@@ -133,7 +149,6 @@ class DigestManifest
   # @return {Function} in-file replacement function
   ###
   replaceRefs: (staticFilesMap) =>
-
     ###
     # Performs replacements into provided url file
     #
@@ -152,7 +167,6 @@ class DigestManifest
 
       fs.writeFileSync(@normalizeUrl(url), fileContent, 'utf8')
 
-
   ###
   # Writes with json format the hash map description object
   # into a file
@@ -166,6 +180,5 @@ class DigestManifest
       JSON.stringify references
       'utf8'
     )
-
 
 module.exports = DigestManifest
