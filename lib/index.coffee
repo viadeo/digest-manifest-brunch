@@ -107,7 +107,7 @@ class DigestManifest
   ###
   isStaticResource: (url) =>
     ext = path.extname(url)
-    ['.png', '.jpg', '.jpeg', '.svg', '.eot', '.ttf', '.woff'].indexOf(ext) > -1
+    ['.png', '.gif', '.jpg', '.jpeg', '.svg', '.eot', '.ttf', '.woff'].indexOf(ext) > -1
 
   ###
   # Returns an object describing the link between a resource path
