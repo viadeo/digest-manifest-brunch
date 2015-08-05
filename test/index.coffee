@@ -38,10 +38,9 @@ describe 'DigestManifest', ->
       expect(digest.isStaticResource 'manifest.json').to.be.false
       expect(digest.isStaticResource 'file.png').to.be.true
 
-  describe 'hashedFilePath method', ->
+  describe 'hashFilePath method', ->
 
     it 'returns hash map of given file url', ->
-      expect(digest.hashedFilePath 'file.js').to.deep.equal(
+      expect(digest.hashFilePath 'file.js').to.deep.equal(
         'file.js': 'file.da39a3e.js'
       )
-  

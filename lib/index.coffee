@@ -16,14 +16,14 @@ class DigestManifest
 
   onCompile: ->
 
-    # public folder filetree list
+    # public folder file tree array
     g = R.filter(@isValidFile, glob.sync('**', cwd: @publicFolder ))
 
-    # create hashed version of provided file list
+    # creates hashed version of provided file list
     # -> return a hash map
     # hashAndMap :: [String] -> [Object] -> Object
     hashAndMap = R.pipe(
-      R.map     @hashedFilePath               # 's' -> {'s' : 'h'}
+      R.map     @hashFilePath                 # 's' -> {'s' : 'h'}
       R.forEach @createHashedFile             # {a} -> {a}
       R.mergeAll                              # [{a}, {a}, ...] -> {A} # merge all references into a single object
     )
@@ -113,14 +113,16 @@ class DigestManifest
   # Returns an object describing the link between a resource path
   # and its hashed counterpart
   #
+  # Note: 'binary' encoding is enforced according to 'crypto#update' default values
+  #
   # @param {String} url
   # @return {Object}
   #
-  # hashedFilePath :: String -> Object
+  # hashFilePath :: String -> Object
   #
   # '/relative/path/to/file.ext' -> {'/relative/path/to/file.ext' : '/relative/path/to/file.sha1xq0ds.ext'}
   ###
-  hashedFilePath: (url) =>
+  hashFilePath: (url) =>
     obj = {}
     data = fs.readFileSync @normalizeUrl(url)
     sha1 = crypto.createHash('sha1').update(data).digest('hex')[0..@sha1Level]
